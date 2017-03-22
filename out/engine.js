@@ -197,8 +197,8 @@ var engine;
 (function (engine) {
     var DisplayObject = (function (_super) {
         __extends(DisplayObject, _super);
-        function DisplayObject() {
-            _super.apply(this, arguments);
+        function DisplayObject(type) {
+            _super.call(this);
             /**
              * 坐标
              */
@@ -219,14 +219,6 @@ var engine;
              */
             this.rotation = 0;
             /**
-             * 相对位置矩阵
-             */
-            this.localMatrix = new math.Matrix(1, 0, 0, 1, 0, 0);
-            /**
-             * 全球位置矩阵
-             */
-            this.globalMatrix = new math.Matrix(1, 0, 0, 1, 0, 0);
-            /**
              * 父容器
              */
             this.parent = null;
@@ -234,27 +226,34 @@ var engine;
              * 是否可触碰
              */
             this.touchEnabled = false;
+            /**
+             * 类型
+             */
+            this.type = "DisplayObject";
+            this.type = type;
+            this.localMatrix = new math.Matrix(1, 0, 0, 1, 0, 0);
+            this.globalMatrix = new math.Matrix(1, 0, 0, 1, 0, 0);
         }
         /**
          * 绘制（矩阵变换）
          */
-        DisplayObject.prototype.draw = function (context) {
+        DisplayObject.prototype.update = function () {
             this.localMatrix.updateFromDisplayObject(this.x, this.y, this.scaleX, this.scaleY, this.rotation);
             //alpha变化
             if (this.parent) {
-                //alpha变化
-                this.globalAlpha = this.parent.globalAlpha * this.alpha;
+                // //alpha变化
+                // this.globalAlpha = this.parent.globalAlpha * this.alpha;
                 //矩阵变化
                 this.globalMatrix = math.matrixAppendMatrix(this.localMatrix, this.parent.globalMatrix);
             }
             else {
-                this.globalAlpha = this.alpha;
+                // this.globalAlpha = this.alpha;
                 this.globalMatrix = this.localMatrix;
             }
-            context.globalAlpha = this.globalAlpha;
+            // context.globalAlpha = this.globalAlpha;
             var gMatrix = this.globalMatrix;
-            context.setTransform(gMatrix.a, gMatrix.b, gMatrix.c, gMatrix.d, gMatrix.tx, gMatrix.ty);
-            this.render(context);
+            // context.setTransform(gMatrix.a, gMatrix.b, gMatrix.c, gMatrix.d, gMatrix.tx, gMatrix.ty);
+            // this.render(context);
         };
         /**
          * 事件触发器
@@ -299,13 +298,17 @@ var engine;
             }
             return false;
         };
+        /**
+         * 渲染组
+         */
+        DisplayObject.renderList = [];
         return DisplayObject;
     }(engine.EventDispatcher));
     engine.DisplayObject = DisplayObject;
     var DisplayObjectContainer = (function (_super) {
         __extends(DisplayObjectContainer, _super);
         function DisplayObjectContainer() {
-            _super.apply(this, arguments);
+            _super.call(this, "DisplayObjectContainer");
             this.children = [];
         }
         /**
@@ -333,10 +336,11 @@ var engine;
         /**
          * 渲染
          */
-        DisplayObjectContainer.prototype.render = function (context) {
+        DisplayObjectContainer.prototype.update = function () {
+            _super.prototype.update.call(this);
             for (var _i = 0, _a = this.children; _i < _a.length; _i++) {
                 var c = _a[_i];
-                c.draw(context);
+                c.update();
             }
         };
         /**
@@ -363,24 +367,11 @@ var engine;
     var Bitmap = (function (_super) {
         __extends(Bitmap, _super);
         function Bitmap() {
-            _super.apply(this, arguments);
+            _super.call(this, "Bitmap");
             this.src = "";
             this.Img = new Image();
             this.isLoaded = false;
         }
-        Bitmap.prototype.render = function (context) {
-            var _this = this;
-            this.Img.src = this.src;
-            if (this.isLoaded == true) {
-                context.drawImage(this.Img, 0, 0);
-            }
-            else {
-                this.Img.onload = function () {
-                    context.drawImage(_this.Img, 0, 0);
-                    _this.isLoaded = true;
-                };
-            }
-        };
         Bitmap.prototype.hitTest = function (point) {
             var rect = new math.Rectangle();
             rect.width = this.Img.width;
@@ -403,7 +394,7 @@ var engine;
     var TextField = (function (_super) {
         __extends(TextField, _super);
         function TextField() {
-            _super.apply(this, arguments);
+            _super.call(this, "TextField");
             this.text = "space";
             this.font = "Arial";
             this.size = 10;
@@ -423,11 +414,6 @@ var engine;
             enumerable: true,
             configurable: true
         });
-        TextField.prototype.render = function (context) {
-            context.fillStyle = this.textcolor;
-            context.font = this.size + "px " + this.font;
-            context.fillText(this.text, 0, 0);
-        };
         TextField.prototype.hitTest = function (point) {
             var rect = new math.Rectangle();
             rect.width = this.size * this.text.length;
@@ -435,8 +421,6 @@ var engine;
             var invertMatrix = math.invertMatrix(this.localMatrix); //逆矩阵
             var localPoint = math.pointAppendMatrix(point, invertMatrix);
             localPoint.y = localPoint.y + this.size;
-            // console.log("point： (" + localPoint.x + "," + localPoint.y + ")");
-            // console.log("rect: (" + rect.x + "," + rect.y + ")  W:" + rect.width + "  H: " + rect.height);
             if (rect.isPointInRectangle(localPoint)) {
                 return this;
             }
@@ -453,12 +437,13 @@ var engine;
     var Shape = (function (_super) {
         __extends(Shape, _super);
         function Shape() {
-            _super.apply(this, arguments);
+            _super.call(this, "Shape");
             /**
              * 颜色
              */
             this.color = "#000000";
         }
+        ;
         Shape.prototype.hitTest = function (point) {
             var rect = new math.Rectangle();
             rect.width = this.width;
@@ -483,19 +468,11 @@ var engine;
          * 绘制方形
          */
         Shape.prototype.drawRect = function (x, y, width, height) {
-            this.type = "Rect";
+            this.shapeType = "Rect";
             this.x = x;
             this.y = y;
             this.width = width;
             this.height = height;
-        };
-        Shape.prototype.render = function (context) {
-            context.fillStyle = this.color;
-            switch (this.type) {
-                case "Rect":
-                    context.fillRect(0, 0, this.width, this.height);
-                    break;
-            }
         };
         return Shape;
     }(DisplayObject));
@@ -600,14 +577,12 @@ var engine;
         var stage = new engine.DisplayObjectContainer();
         var context2D = canvas.getContext("2d");
         var lastNow = Date.now(); //记录当前时间
+        var render = new Canvas2DRender(stage, context2D);
         var frameHandler = function () {
             var now = Date.now();
             var deltaTime = now - lastNow;
             engine.Ticker.getInstance().notify(deltaTime); //心跳控制器广播
-            context2D.clearRect(0, 0, 800, 800);
-            context2D.save();
-            stage.draw(context2D);
-            context2D.restore();
+            render.render();
             lastNow = now;
             window.requestAnimationFrame(frameHandler);
         };
@@ -634,4 +609,70 @@ var engine;
         };
         return stage;
     };
+    var Canvas2DRender = (function () {
+        function Canvas2DRender(stage, context2D) {
+            this.stage = stage;
+            this.context2D = context2D;
+        }
+        Canvas2DRender.prototype.render = function () {
+            var stage = this.stage;
+            var context = this.context2D;
+            this.stage.update();
+            context.clearRect(0, 0, 1000, 1000);
+            context.save();
+            this.renderContainer(stage);
+            context.restore();
+        };
+        Canvas2DRender.prototype.renderContainer = function (stage) {
+            for (var _i = 0, _a = engine.DisplayObject.renderList; _i < _a.length; _i++) {
+                var displayObject = _a[_i];
+                var context2D = this.context2D;
+                context2D.globalAlpha = displayObject.globalAlpha;
+                var m = displayObject.globalMatrix;
+                context2D.setTransform(m.a, m.b, m.c, m.d, m.tx, m.ty);
+                if (displayObject.type == "Bitmap") {
+                    this.renderBitmap(displayObject);
+                }
+                else if (displayObject.type == "TextField") {
+                    this.renderTextField(displayObject);
+                }
+                else if (displayObject.type == "Shape") {
+                    this.renderShape(displayObject);
+                }
+                else if (displayObject.type == "DisplayObjectContainer") {
+                    this.renderContainer(displayObject);
+                }
+            }
+        };
+        Canvas2DRender.prototype.renderBitmap = function (bitmap) {
+            bitmap.Img.src = bitmap.src;
+            var context = this.context2D;
+            if (bitmap.isLoaded == true) {
+                context.drawImage(bitmap.Img, 0, 0);
+            }
+            else {
+                bitmap.Img.onload = function () {
+                    context.drawImage(bitmap.Img, 0, 0);
+                    bitmap.isLoaded = true;
+                };
+            }
+        };
+        Canvas2DRender.prototype.renderTextField = function (textField) {
+            var context = this.context2D;
+            context.fillStyle = textField.textcolor;
+            context.font = textField.size + "px " + textField.font;
+            context.fillText(textField.text, 0, 0);
+        };
+        Canvas2DRender.prototype.renderShape = function (shape) {
+            var context = this.context2D;
+            context.fillStyle = shape.color;
+            switch (shape.shapeType) {
+                case "Rect":
+                    context.fillRect(0, 0, shape.width, shape.height);
+                    break;
+            }
+        };
+        return Canvas2DRender;
+    }());
+    engine.Canvas2DRender = Canvas2DRender;
 })(engine || (engine = {}));

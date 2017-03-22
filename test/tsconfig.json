@@ -5,7 +5,7 @@
 		"outDir": "./out"
 	},
 	"include": [
-		"src/**/*.ts",
-		"../engine/out/**/*.d.ts"
+		"../engine/out/**/*.d.ts",
+		"src/**/*.ts"
 	]
 }

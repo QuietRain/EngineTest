@@ -16,7 +16,23 @@ bitmap1.x = 300;
 
 /**
  * 动画
+ * 
  */
+
+var standData: engine.MovieClipData = {//站立头文件
+	name: "three",
+	frames: [
+		{ image: "resource/stand/stand1.jpg" },
+		{ image: "resource/stand/stand2.jpg" },
+		{ image: "resource/stand/stand3.jpg" },
+		{ image: "resource/stand/stand4.jpg" },
+		{ image: "resource/stand/stand5.jpg" },
+		{ image: "resource/stand/stand6.jpg" },
+		{ image: "resource/stand/stand7.jpg" },
+		{ image: "resource/stand/stand8.jpg" },
+
+	]
+}
 
 var moveRightData: engine.MovieClipData = {//向右移动头文件
 	name: "three",
@@ -63,12 +79,34 @@ var fightData: engine.MovieClipData = {//战斗头文件
 	]
 }
 
+/**
+ * 来个形状和文字
+ */
+
+var shape = new engine.Shape();
+shape.beginFill("#000000", 0.5);
+shape.drawRect(200, 100, 100, 100);
+
+var text1 = new engine.TextField();
+text1.text = "lalala";
+text1.textcolor = "#0000FF";
+text1.x = 300;
+text1.y = 100;
+
+var text2 = new engine.TextField();
+text2.text = "lalala";
+text2.textcolor = "#0000FF";
+text2.size = 20;
+text2.x = 300;
+text2.y = 110;
+
 
 
 //动画序列
 var moveRightclip = new engine.MovieClip(moveRightData)
 var moveLeftclip = new engine.MovieClip(moveLeftData)
 var fightclip = new engine.MovieClip(fightData);
+var standclip = new engine.MovieClip(standData);
 
 
 
@@ -87,6 +125,9 @@ var container4 = new engine.DisplayObjectContainer();
 container4.x = 100;
 container4.y = 200;
 
+var container5 = new engine.DisplayObjectContainer();
+container4.x = 100;
+container4.y = 300;
 
 container1.addChild(bitmap1);
 container1.addChild(button);
@@ -94,21 +135,40 @@ container1.addChild(button);
 container2.addChild(moveRightclip);
 container3.addChild(moveLeftclip);
 container4.addChild(fightclip);
+container5.addChild(standclip);
 
+// container5.addChild(shape);
+// container5.addChild(text1);
+// container5.addChild(text2);
+
+
+// moveRightclip.touchEnabled = true;
+// moveRightclip.addEventListener(engine.MouseState.MOUSE_CLICK, () => {
+// 	console.log("1212");
+// });
 // stage.addChild(container1);
 stage.addChild(container2);
 stage.addChild(container3);
 stage.addChild(container4);
+stage.addChild(container5);
 
-bitmap1.addEventListener(engine.MouseState.MOUSE_MOVE, (e) => {
-	// console.log("e.offsetX: " + e.offsetX + "  e.offsetY: " + e.offsetY);
-	container1.x += e.movementX;
-	container1.y += e.movementY;
+moveRightclip.touchEnabled = true;
+moveRightclip.addEventListener(engine.MouseState.MOUSE_MOVE, (e) => {
+	console.log("e.offsetX: " + e.offsetX + "  e.offsetY: " + e.offsetY);
+	container2.x += e.movementX;
+	container2.y += e.movementY;
 });
-
-button.addEventListener(engine.MouseState.MOUSE_CLICK, (e) => {
+moveLeftclip.touchEnabled = true;
+moveLeftclip.addEventListener(engine.MouseState.MOUSE_CLICK, (e) => {
 	alert("111");
 });
+shape.touchEnabled = true;
+text2.touchEnabled = true;
+text2.addEventListener(engine.MouseState.MOUSE_DOWN, (e) => {
+	var width = text2.width;
+	var height = text2.height;
+	console.log("找到了width: " + width + "  height: " + height);
+})
 
 
 

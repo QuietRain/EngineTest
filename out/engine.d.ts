@@ -84,7 +84,7 @@ declare namespace engine {
 }
 declare namespace engine {
     interface Drawable {
-        draw(context: CanvasRenderingContext2D): any;
+        update(): any;
         hitTest(point: math.Point): DisplayObject;
     }
     abstract class DisplayObject extends EventDispatcher implements Drawable {
@@ -97,7 +97,7 @@ declare namespace engine {
          * 透明度
          */
         alpha: number;
-        protected globalAlpha: number;
+        globalAlpha: number;
         /**
          * 缩放(x,y)
          */
@@ -124,9 +124,18 @@ declare namespace engine {
          */
         touchEnabled: boolean;
         /**
+         * 类型
+         */
+        type: string;
+        /**
+         * 渲染组
+         */
+        static renderList: DisplayObject[];
+        constructor(type: string);
+        /**
          * 绘制（矩阵变换）
          */
-        draw(context: CanvasRenderingContext2D): void;
+        update(): void;
         /**
          * 事件触发器
          */
@@ -135,11 +144,11 @@ declare namespace engine {
          * 事件派发器
          */
         dispatchEvent(event: MyEvent): boolean;
-        abstract render(context: CanvasRenderingContext2D): any;
         abstract hitTest(point: math.Point): DisplayObject;
     }
     class DisplayObjectContainer extends DisplayObject {
         children: DisplayObject[];
+        constructor();
         /**
          * 增加子物体
          */
@@ -151,7 +160,7 @@ declare namespace engine {
         /**
          * 渲染
          */
-        render(context: CanvasRenderingContext2D): void;
+        update(): void;
         /**
          * 碰撞检测
          */
@@ -160,8 +169,8 @@ declare namespace engine {
     class Bitmap extends DisplayObject {
         src: string;
         Img: HTMLImageElement;
-        private isLoaded;
-        render(context: CanvasRenderingContext2D): void;
+        isLoaded: boolean;
+        constructor();
         hitTest(point: math.Point): DisplayObject;
     }
     class TextField extends DisplayObject {
@@ -171,7 +180,7 @@ declare namespace engine {
         textcolor: string;
         width: number;
         height: number;
-        render(context: CanvasRenderingContext2D): void;
+        constructor();
         hitTest(point: math.Point): DisplayObject;
     }
     /**
@@ -193,7 +202,8 @@ declare namespace engine {
         /**
          * 形状
          */
-        private type;
+        shapeType: string;
+        constructor();
         hitTest(point: math.Point): DisplayObject;
         /**
          * 设置颜色和alpha
@@ -203,7 +213,6 @@ declare namespace engine {
          * 绘制方形
          */
         drawRect(x: number, y: number, width: number, height: number): void;
-        render(context: CanvasRenderingContext2D): void;
     }
     type Ticker_Listener_Type = (deltaTime: number) => void;
     class Ticker {
@@ -254,4 +263,14 @@ declare namespace engine {
 }
 declare namespace engine {
     let run: (canvas: HTMLCanvasElement) => DisplayObjectContainer;
+    class Canvas2DRender {
+        private stage;
+        private context2D;
+        constructor(stage: DisplayObjectContainer, context2D: CanvasRenderingContext2D);
+        render(): void;
+        renderContainer(stage: DisplayObjectContainer): void;
+        private renderBitmap(bitmap);
+        private renderTextField(textField);
+        private renderShape(shape);
+    }
 }

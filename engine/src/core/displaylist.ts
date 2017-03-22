@@ -1,6 +1,6 @@
 namespace engine {
 	export interface Drawable {
-		draw(context: CanvasRenderingContext2D);
+		update();
 		hitTest(point: math.Point): DisplayObject;
 	}
 
@@ -15,7 +15,7 @@ namespace engine {
 		 * 透明度
 		 */
 		alpha = 1;
-		protected globalAlpha = 1;
+		globalAlpha = 1;
 		/**
 		 * 缩放(x,y)
 		 */
@@ -26,37 +26,60 @@ namespace engine {
 		 */
 		rotation = 0;
 		/**
-		 * 矩阵
+		 * 相对位置矩阵
 		 */
-		localMatrix = new math.Matrix(1, 0, 0, 1, 0, 0);
+		localMatrix: math.Matrix;
 		/**
-		 * 全球矩阵
+		 * 全球位置矩阵
 		 */
-		globalMatrix = new math.Matrix(1, 0, 0, 1, 0, 0);
+		globalMatrix: math.Matrix;
 		/**
 		 * 父容器
 		 */
 		parent: DisplayObjectContainer = null;
+
+		/**
+		 * 是否可触碰
+		 */
+		touchEnabled = false;
+
+		/**
+		 * 类型
+		 */
+		type = "DisplayObject"
+
+		/**
+		 * 渲染组
+		 */
+		static renderList: DisplayObject[] = [];
+
+
+		constructor(type: string) {
+			super();
+			this.type = type;
+			this.localMatrix = new math.Matrix(1, 0, 0, 1, 0, 0);
+			this.globalMatrix = new math.Matrix(1, 0, 0, 1, 0, 0);
+		}
+
 		/**
 		 * 绘制（矩阵变换）
 		 */
-		draw(context: CanvasRenderingContext2D) {
+		update() {
 			this.localMatrix.updateFromDisplayObject(this.x, this.y, this.scaleX, this.scaleY, this.rotation);
 			//alpha变化
 			if (this.parent) {
-				//alpha变化
-				this.globalAlpha = this.parent.globalAlpha * this.alpha;
+				// //alpha变化
+				// this.globalAlpha = this.parent.globalAlpha * this.alpha;
 				//矩阵变化
 				this.globalMatrix = math.matrixAppendMatrix(this.localMatrix, this.parent.globalMatrix);
 			} else {
-				this.globalAlpha = this.alpha;
+				// this.globalAlpha = this.alpha;
 				this.globalMatrix = this.localMatrix;
 			}
-			context.globalAlpha = this.globalAlpha;
+			// context.globalAlpha = this.globalAlpha;
 			var gMatrix = this.globalMatrix;
-			context.setTransform(gMatrix.a, gMatrix.b, gMatrix.c, gMatrix.d, gMatrix.tx, gMatrix.ty);
-			this.render(context);
-
+			// context.setTransform(gMatrix.a, gMatrix.b, gMatrix.c, gMatrix.d, gMatrix.tx, gMatrix.ty);
+			// this.render(context);
 		}
 
 		/**
@@ -88,7 +111,8 @@ namespace engine {
 		dispatchEvent(event: MyEvent): boolean {//(查找这个物体是不是有eventlistener，如果有，)
 			for (let targetEvent of this.totalEventArray) {
 				if (targetEvent.Mouse_Event.currentTarget == event.currentTarget &&
-					targetEvent.Mouse_Event.type == event.type) {           //当前目标相同,且事件类型相同
+					targetEvent.Mouse_Event.type == event.type &&
+					this.touchEnabled == true) {           //当前目标相同,且事件类型相同,可触碰
 					if (targetEvent.Mouse_Event.cancelBubble) { //如果抓捕，方法插入队头
 						EventDispatcher.dispatchEventArray.unshift(targetEvent);
 					} else { //冒泡，插入队尾
@@ -101,7 +125,7 @@ namespace engine {
 		}
 
 
-		abstract render(context: CanvasRenderingContext2D)
+		// abstract render(context: CanvasRenderingContext2D)
 		abstract hitTest(point: math.Point): DisplayObject;
 	}
 
@@ -109,9 +133,16 @@ namespace engine {
 
 	export class DisplayObjectContainer extends DisplayObject {
 		children: DisplayObject[] = [];
+
+
+
+		constructor() {
+			super("DisplayObjectContainer");
+		}
 		/**
 		 * 增加子物体
 		 */
+
 		addChild(newObject: DisplayObject) {
 			this.children.push(newObject);
 			newObject.parent = this;
@@ -133,9 +164,10 @@ namespace engine {
 		/**
 		 * 渲染
 		 */
-		render(context: CanvasRenderingContext2D) {
+		update() {
+			super.update();
 			for (let c of this.children) {
-				c.draw(context);
+				c.update();
 			}
 		}
 		/**
@@ -162,26 +194,21 @@ namespace engine {
 	export class Bitmap extends DisplayObject {
 		src = "";
 		Img = new Image();
-		private isLoaded = false;
-		render(context: CanvasRenderingContext2D) {
-			this.Img.src = this.src
-			if (this.isLoaded == true) {
-				context.drawImage(this.Img, 0, 0);
-			}
-			else {
-				this.Img.onload = () => {
-					context.drawImage(this.Img, 0, 0);
-					this.isLoaded = true;
-				}
-			}
+		isLoaded = false;
+
+
+		constructor() {
+			super("Bitmap");
 		}
+
+
 
 		hitTest(point: math.Point): DisplayObject {
 			var rect = new math.Rectangle();
 			rect.width = this.Img.width;
 			rect.height = this.Img.height;
 			let invertMatrix = math.invertMatrix(this.localMatrix);//逆矩阵
-			var localPoint = math.pointAppendMatrix(point, invertMatrix);
+			let localPoint = math.pointAppendMatrix(point, invertMatrix);
 			if (rect.isPointInRectangle(localPoint)) {
 				return this;
 			} else {
@@ -201,20 +228,94 @@ namespace engine {
 		text = "space";
 		font = "Arial"
 		size = 10;
-		render(context: CanvasRenderingContext2D) {
-			context.font = this.size + " " + this.font;
-			context.fillText(this.text, 0, 0);
+		textcolor = "#000000";
+
+		get width(): number {
+			return this.text.length * this.size;
 		}
+
+		get height(): number {
+			return this.size;
+		}
+
+		constructor() {
+			super("TextField");
+		}
+
 		hitTest(point: math.Point): DisplayObject {
 			var rect = new math.Rectangle();
 			rect.width = this.size * this.text.length;
-			rect.height = 20;
-			if (rect.isPointInRectangle(point)) {
+			rect.height = this.size;
+			let invertMatrix = math.invertMatrix(this.localMatrix);//逆矩阵
+			let localPoint = math.pointAppendMatrix(point, invertMatrix);
+			localPoint.y = localPoint.y + this.size;
+
+			if (rect.isPointInRectangle(localPoint)) {
 				return this;
 			} else {
 				return null
 			}
 
+		}
+
+	}
+
+	/**
+	 * 图形
+	 */
+	export class Shape extends DisplayObject {
+		/**
+		 * 图形宽度
+		 */
+		width: number;
+		/**
+		 * 图形高度
+		 */
+		height: number
+		/**
+		 * 颜色
+		 */
+		color = "#000000";
+		/**
+		 * 形状
+		 */
+		shapeType: string;
+
+
+		constructor() {
+			super("Shape");
+		};
+
+
+		hitTest(point: math.Point): DisplayObject {
+			var rect = new math.Rectangle();
+			rect.width = this.width;
+			rect.height = this.height;
+			let invertMatrix = math.invertMatrix(this.localMatrix);//逆矩阵
+			let localPoint = math.pointAppendMatrix(point, invertMatrix);
+			if (rect.isPointInRectangle(localPoint)) {
+				return this;
+			} else {
+				return null
+			}
+
+		}
+		/**
+		 * 设置颜色和alpha
+		 */
+		beginFill(color: string, alpha: number) {
+			this.color = color;
+			this.alpha = alpha;
+		}
+		/**
+		 * 绘制方形
+		 */
+		drawRect(x: number, y: number, width: number, height: number) {
+			this.shapeType = "Rect";
+			this.x = x;
+			this.y = y;
+			this.width = width;
+			this.height = height;
 		}
 
 	}
@@ -337,4 +438,6 @@ namespace engine {
 			// 创建 / 更新 
 		}
 	}
+
+
 }
